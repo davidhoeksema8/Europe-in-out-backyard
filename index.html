@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>EU Project Map Fryslân</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+html, body { margin:0; padding:0; height:100%; font-family: Arial, sans-serif; }
+#map { width:100%; height:100%; }
+
+#header {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1001;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 15px;
+  border-radius: 5px;
+  max-width: 300px;
+}
+#header h1 { margin: 0; font-size: 22px; }
+#header h2 { margin: 5px 0 0 0; font-size: 14px; }
+
+#funds-box {
+  position: absolute;
+  top: 160px;
+  left: 10px;
+  z-index: 1001;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 15px;
+  border-radius: 5px;
+  max-width: 300px;
+}
+#funds-box h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  border-bottom: 1px solid #aaa;
+  padding-bottom: 3px;
+}
+.fund-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+.fund-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: grey;
+  margin-right: 5px;
+}
+
+.baard-tooltip {
+  background-color: white;
+  border: 2px solid #007bff;
+  border-radius: 5px;
+  padding: 10px;
+  max-width: 260px;
+  font-size: 14px;
+}
+
+.pulse-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: red;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.6); opacity: 0.5; }
+}
+
+.legend {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  border: 2px solid #555;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 5px;
+  z-index: 1000;
+}
+.legend h4 { margin:0 0 5px 0; font-size:16px; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.legend-color {
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  border-radius: 50%;
+}
+.legend-pin {
+  width: 20px;
+  height: 30px;
+  margin-right: 5px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.legend-pin.blue { background-image: url('https://maps.google.com/mapfiles/ms/icons/blue-dot.png'); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="header">
+  <h1>Europe in our backyard</h1>
+  <h2>Visual representation of EU projects in Fryslân</h2>
+</div>
+
+<div id="funds-box">
+  <h3>Funds</h3>
+  <div class="fund-item"><div class="fund-dot" id="dot-interreg"></div>Interreg</div>
+  <div class="fund-item"><div class="fund-dot" id="dot-erdf"></div>ERDF</div>
+  <div class="fund-item"><div class="fund-dot" id="dot-erasmus"></div>Erasmus+</div>
+  <div class="fund-item"><div class="fund-dot" id="dot-horizon"></div>Horizon</div>
+  <div class="fund-item"><div class="fund-dot" id="dot-eagf"></div>EAGF</div>
+  <div class="fund-item"><div class="fund-dot" id="dot-invest"></div>Invest EU</div>
+</div>
+
+<div class="legend">
+  <h4>Legend</h4>
+  <div class="legend-item">
+    <div class="legend-pin blue"></div>
+    <div>EU projects</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:red;"></div>
+    <div>Active</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:yellow;"></div>
+    <div>Planned</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Initialize map
+const map = L.map('map').setView([53.2, 5.6], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Use real blue and red pins
+const blueIcon = new L.Icon({
+  iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32]
+});
+const redIcon = new L.Icon({
+  iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32]
+});
+
+// Baard marker
+const baardLatLng = [53.2245, 5.5667];
+const baardMarker = L.marker(baardLatLng, { icon: blueIcon }).addTo(map);
+
+// Tooltip
+const baardTooltip = L.popup({ closeButton: false, offset: [0, -45] })
+  .setContent(`
+    <div class="baard-tooltip">
+      <strong>Baard — EU Project: Waterwarmth</strong><br>
+      The city of Baard pilots a major EU project called <em>Waterwarmth</em>. This project concerns the energy transition and aims to heat houses and other infrastructure using heat from surface water. This technique (aquethermie) supports the EU’s goal of climate neutrality by 2050.
+    </div>
+  `);
+
+// Active locations
+const activeLocations = [
+  [53.2000,5.7900],
+  [53.3833,5.3000],
+  [52.8550,5.7150],
+  [53.05,5.425]
+];
+
+let activeDots = [];
+
+// Function to create pulsing red dot
+function createPulseMarker(latlng) {
+  const divIcon = L.divIcon({
+    className: '',
+    html: `<div class="pulse-dot"></div>`,
+    iconSize: [16,16],
+    iconAnchor: [8,8]
+  });
+  return L.marker(latlng, { icon: divIcon }).addTo(map);
+}
+
+// Fund dots
+const fundDots = {
+  interreg: document.getElementById('dot-interreg'),
+  erdf: document.getElementById('dot-erdf'),
+  erasmus: document.getElementById('dot-erasmus'),
+  horizon: document.getElementById('dot-horizon'),
+  eagf: document.getElementById('dot-eagf'),
+  invest: document.getElementById('dot-invest')
+};
+
+// Hover events
+baardMarker.on('mouseover', () => {
+  baardMarker.setIcon(redIcon); // red on hover
+  baardMarker.bindPopup(baardTooltip).openPopup();
+
+  // Add red dots
+  activeLocations.forEach(loc => activeDots.push(createPulseMarker(loc)));
+
+  // Funds dots coloring
+  fundDots.interreg.style.backgroundColor = 'green';
+  fundDots.erdf.style.backgroundColor = 'green';
+  fundDots.erasmus.style.backgroundColor = 'red';
+  fundDots.horizon.style.backgroundColor = 'red';
+  fundDots.eagf.style.backgroundColor = 'red';
+  fundDots.invest.style.backgroundColor = 'red';
+});
+
+baardMarker.on('mouseout', () => {
+  baardMarker.setIcon(blueIcon); // back to blue
+  baardMarker.closePopup();
+
+  // Remove all active dots
+  activeDots.forEach(dot => map.removeLayer(dot));
+  activeDots = [];
+
+  // Reset fund dots to grey
+  for (let key in fundDots) fundDots[key].style.backgroundColor = 'grey';
+});
+</script>
+</body>
+</html>
